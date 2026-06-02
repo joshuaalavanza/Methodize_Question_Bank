@@ -1,0 +1,313 @@
+.dashboard {
+  flex: 1;
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+
+.loading {
+  padding: 40px;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* ── top bar ── */
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.stats {
+  display: flex;
+  gap: 24px;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.statValue {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  line-height: 1;
+}
+.statAccent { color: #dc2626; }
+.statLabel  { font-size: .72rem; color: #6b7280; text-transform: uppercase; letter-spacing: .05em; }
+
+/* ── table ── */
+.tableWrap { overflow-x: auto; }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .875rem;
+}
+.table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #6b7280;
+  border-bottom: 2px solid #e5e7eb;
+}
+.row {
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background .1s;
+}
+.row:hover        { background: #f9fafb; }
+.rowSelected      { background: #eff6ff; }
+.table td         { padding: 12px 12px; vertical-align: middle; }
+
+.username   { font-weight: 600; color: #1f2937; }
+.weakSkill  { color: #6b7280; font-size: .82rem; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lastActive { color: #9ca3af; font-size: .82rem; }
+
+/* accuracy badge */
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: .8rem;
+  font-weight: 700;
+}
+.green { background: #dcfce7; color: #16a34a; }
+.amber { background: #fef3c7; color: #d97706; }
+.red   { background: #fee2e2; color: #dc2626; }
+
+/* ── expanded detail ── */
+.detailRow td { padding: 0; }
+.detailLoading { padding: 16px 24px; color: #6b7280; font-size: .85rem; }
+
+.detail {
+  background: #f8fafc;
+  border-bottom: 2px solid #dbeafe;
+}
+
+/* tab bar */
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 24px;
+  gap: 4px;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: .82rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color .12s;
+}
+.tab:hover { color: #374151; }
+.tabActive  { color: #1e3a5f; border-bottom-color: #1e3a5f; font-weight: 600; }
+.tabCount {
+  background: #e5e7eb;
+  color: #374151;
+  font-size: .7rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 99px;
+}
+.tabActive .tabCount { background: #dbeafe; color: #1e40af; }
+
+/* history list */
+.historyList {
+  padding: 12px 24px;
+  max-height: 340px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.emptyTab { color: #9ca3af; font-size: .85rem; padding: 8px 0; }
+
+.historyItem {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f4f6;
+  align-items: flex-start;
+}
+.historyItem:last-child { border-bottom: none; }
+
+.resultDot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .72rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.dotCorrect { background: #dcfce7; color: #16a34a; }
+.dotWrong   { background: #fee2e2; color: #dc2626; }
+
+.historyBody { flex: 1; min-width: 0; }
+
+.historyQ {
+  font-size: .83rem;
+  color: #1f2937;
+  line-height: 1.5;
+  margin-bottom: 4px;
+  cursor: default;
+}
+
+.expandBtn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: .78rem;
+  cursor: pointer;
+  padding: 0;
+}
+.expandBtn:hover { text-decoration: underline; }
+
+/* ── inline question view ── */
+.qv {
+  margin-top: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.qvImage { border-bottom: 1px solid #f3f4f6; }
+.qvImage img { width: 100%; display: block; }
+
+.qvChoices {
+  list-style: none;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.qvChoice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: .82rem;
+  color: #374151;
+}
+.qvCorrect {
+  background: #f0fdf4;
+  border-color: #22c55e;
+  color: #166534;
+}
+.qvWrong {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #991b1b;
+}
+.qvLabel  { font-weight: 700; min-width: 16px; }
+.qvText   { flex: 1; }
+.qvMark   { font-size: .75rem; font-weight: 600; margin-left: auto; white-space: nowrap; }
+.qvCorrectText { color: #16a34a; }
+
+.qvGridIn {
+  padding: 12px;
+  font-size: .85rem;
+  color: #374151;
+}
+
+.qvExplanation {
+  padding: 10px 12px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+}
+.qvExplanation h4 {
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+.qvExplanation p { font-size: .8rem; color: #374151; line-height: 1.55; }
+
+.historyMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.historySkill {
+  font-size: .73rem;
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-weight: 600;
+}
+.historyDot  { color: #d1d5db; }
+.historyTime { font-size: .75rem; color: #9ca3af; }
+
+/* breakdown tab */
+.detailCols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  padding: 16px 24px;
+}
+.detailHeading {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+/* breakdown rows */
+.breakRow {
+  display: grid;
+  grid-template-columns: 1fr 80px 44px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.breakName {
+  font-size: .8rem;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.breakBar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 99px;
+  overflow: hidden;
+}
+.breakScore {
+  font-size: .75rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.empty {
+  padding: 40px;
+  text-align: center;
+  color: #6b7280;
+  font-size: .9rem;
+}

@@ -1,0 +1,96 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 60px;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 560px;
+  max-width: calc(100vw - 32px);
+  margin-bottom: 40px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+  overflow: hidden;
+}
+
+/* ── header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 0;
+}
+.title { font-size: 1.2rem; font-weight: 700; color: #1e3a5f; }
+.closeBtn {
+  background: none; border: none; cursor: pointer;
+  font-size: 1rem; color: #9ca3af; padding: 4px 8px;
+  border-radius: 6px;
+}
+.closeBtn:hover { background: #f3f4f6; color: #374151; }
+
+.empty {
+  padding: 32px 24px;
+  color: #6b7280;
+  font-size: .9rem;
+  text-align: center;
+}
+
+/* ── overall score ── */
+.overall {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+.overallScore {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.bigNum  { font-size: 2rem; font-weight: 700; color: #1e3a5f; line-height: 1; }
+.bigDen  { font-size: 1rem; color: #6b7280; }
+.bigPct  { margin-left: auto; font-size: 1.1rem; font-weight: 600; color: #6b7280; }
+
+.bar {
+  height: 8px; background: #e5e7eb; border-radius: 99px; overflow: hidden;
+}
+.barFill {
+  height: 100%; background: #1e3a5f; border-radius: 99px;
+  transition: width .5s ease;
+}
+
+/* ── sections ── */
+.section { padding: 16px 24px; border-bottom: 1px solid #f3f4f6; }
+.section:last-child { border-bottom: none; }
+.sectionTitle {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: #6b7280; margin-bottom: 10px;
+}
+.rows { display: flex; flex-direction: column; gap: 8px; }
+
+/* ── skill row ── */
+.skillRow {
+  display: grid;
+  grid-template-columns: 1fr 120px 52px;
+  align-items: center;
+  gap: 10px;
+}
+.skillName {
+  font-size: .82rem; color: #374151;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.skillBar {
+  height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden;
+}
+.skillFill {
+  height: 100%; border-radius: 99px; transition: width .4s ease;
+}
+.skillScore {
+  font-size: .78rem; font-weight: 600; text-align: right;
+}

@@ -1,0 +1,32 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Environment files
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database (keep ChromaDB for faster setup)
+# data/chroma/ is INCLUDED (don't ignore it)
+
+# Temp files
+*.tmp
+*.log
