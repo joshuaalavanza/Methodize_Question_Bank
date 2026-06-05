@@ -214,6 +214,8 @@ export default function App() {
               onMoreLikeThis={() => loadSimilar(q.id)}
               onAnswer={(isCorrect, chosenAnswer) => handleAnswer(q.id, q.skill, q.domain, isCorrect, chosenAnswer)}
               alreadyAnswered={attempts.some(a => a.questionId === q.id)}
+              onSimilarAnswer={handleAnswer}
+              doneIds={doneIds}
             />
           ))}
         </main>

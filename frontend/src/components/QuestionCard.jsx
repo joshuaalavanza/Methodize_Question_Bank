@@ -8,6 +8,7 @@ const LABELS = ['A', 'B', 'C', 'D']
 export default function QuestionCard({
   summary, detail, expanded, similar, loadingSimilar,
   onToggle, onMoreLikeThis, onAnswer, alreadyAnswered,
+  onSimilarAnswer, doneIds,
 }) {
   return (
     <article className={`${styles.card} ${expanded ? styles.expanded : ''}`}>
@@ -30,6 +31,8 @@ export default function QuestionCard({
               loadingSimilar={loadingSimilar}
               onMoreLikeThis={onMoreLikeThis}
               onAnswer={onAnswer}
+              onSimilarAnswer={onSimilarAnswer}
+              doneIds={doneIds}
             />
           : <div className={styles.detailLoading}>Loading…</div>
       )}
@@ -37,7 +40,7 @@ export default function QuestionCard({
   )
 }
 
-function Detail({ detail, similar, loadingSimilar, onMoreLikeThis, onAnswer }) {
+function Detail({ detail, similar, loadingSimilar, onMoreLikeThis, onAnswer, onSimilarAnswer, doneIds }) {
   const [selected, setSelected]     = useState(null)
   const [selfReport, setSelfReport]  = useState(null)
   const [aiText, setAiText]          = useState('')
@@ -195,7 +198,14 @@ function Detail({ detail, similar, loadingSimilar, onMoreLikeThis, onAnswer }) {
             {similar && (
               <div className={styles.similarList}>
                 <h4>Similar questions</h4>
-                {similar.map(r => <SimilarCard key={r.id} r={r} />)}
+                {similar.map(r => (
+                  <SimilarCard
+                    key={r.id}
+                    r={r}
+                    onAnswer={(isCorrect, chosen) => onSimilarAnswer?.(r.id, r.skill, r.domain, isCorrect, chosen)}
+                    alreadyAnswered={doneIds?.has(r.id) ?? false}
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -205,11 +215,22 @@ function Detail({ detail, similar, loadingSimilar, onMoreLikeThis, onAnswer }) {
   )
 }
 
-function SimilarCard({ r }) {
+function SimilarCard({ r, onAnswer, alreadyAnswered }) {
   const [selected, setSelected]     = useState(null)
   const [selfReport, setSelfReport]  = useState(null)
   const answered = selected !== null
   const isGridIn = r.choices.length === 0
+
+  function pickSimilar(label) {
+    if (answered) return
+    setSelected(label)
+    onAnswer?.(label === r.correct_answer, label)
+  }
+
+  function reportSimilarGridIn(got) {
+    setSelfReport(got)
+    onAnswer?.(got, null)
+  }
 
   return (
     <div className={styles.similarCard}>
@@ -217,6 +238,7 @@ function SimilarCard({ r }) {
         <span className={styles.skill}>{r.skill}</span>
         {r.fallback_used && <span className={styles.fallback}>broad match</span>}
         <span className={styles.dist}>dist {r.distance}</span>
+        {alreadyAnswered && <span className={styles.done}>✓ done</span>}
       </div>
 
       {r.image_url && (
@@ -234,8 +256,8 @@ function SimilarCard({ r }) {
             {selfReport === null && (
               <div className={styles.selfReport}>
                 <span>Did you get it?</span>
-                <button className={styles.gotIt}    onClick={() => setSelfReport(true)}>✓ Yes</button>
-                <button className={styles.missedIt} onClick={() => setSelfReport(false)}>✗ No</button>
+                <button className={styles.gotIt}    onClick={() => reportSimilarGridIn(true)}>✓ Yes</button>
+                <button className={styles.missedIt} onClick={() => reportSimilarGridIn(false)}>✗ No</button>
               </div>
             )}
           </>
@@ -255,7 +277,7 @@ function SimilarCard({ r }) {
               <li
                 key={i}
                 className={`${styles.choice} ${mod} ${!answered ? styles.clickable : ''}`}
-                onClick={() => !answered && setSelected(label)}
+                onClick={() => pickSimilar(label)}
               >
                 <span className={styles.choiceLabel}>{label}</span>
                 <span>{c.replace(/^[A-D]\)\s*/, '')}</span>
