@@ -289,6 +289,71 @@
   color: #112240;
 }
 
+/* ── SPR (free response) ──────────────────────────────── */
+
+.sprForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.sprInput {
+  width: 100%;
+  padding: 18px 16px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+  border: 3px solid rgba(255,255,255,.3);
+  border-radius: 14px;
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  transition: border-color .12s;
+  box-sizing: border-box;
+}
+.sprInput:focus { outline: none; border-color: #fff; }
+.sprInput::placeholder { color: rgba(255,255,255,.35); font-size: 1rem; font-weight: 400; }
+
+.sprSubmit {
+  width: 100%;
+  padding: 16px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.sprSubmit:disabled { opacity: .4; cursor: default; }
+.sprSubmit:not(:disabled):hover { opacity: .88; }
+
+.sprAnswered {
+  background: rgba(255,255,255,.1);
+  border-radius: 14px;
+  padding: 24px 32px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.sprAnsweredLabel {
+  font-size: .8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: rgba(255,255,255,.6);
+  margin-bottom: 8px;
+}
+
+.sprAnsweredValue {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #fff;
+}
+
 /* ── Error ────────────────────────────────────────────── */
 
 .errorBox {

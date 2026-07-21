@@ -91,6 +91,18 @@ def _score(is_correct: bool, elapsed: float) -> int:
     return round(SCORE_MAX * ratio)
 
 
+def _is_spr(question: dict) -> bool:
+    choices = question.get("choices") or []
+    return not any(str(c).strip() for c in choices)
+
+
+def _spr_correct(student_ans: str, correct: str) -> bool:
+    try:
+        return abs(float(student_ans) - float(correct)) < 1e-9
+    except (ValueError, TypeError):
+        return student_ans.strip().lower() == correct.strip().lower()
+
+
 def _breakdown(session: Session) -> dict[str, int]:
     tally: dict[str, int] = {"A": 0, "B": 0, "C": 0, "D": 0}
     for ans in session.answers.values():
@@ -194,6 +206,12 @@ async def host_ws(websocket: WebSocket, session_id: str):
         "answer_count":     len(session.answers),
         "leaderboard":      _leaderboard(session) if session.phase == "revealed" else None,
         "time_remaining":   time_remaining,
+        "spr_results":      [
+            {"name": s.name, "answer": session.answers.get(s.id),
+             "is_correct": _spr_correct(session.answers.get(s.id, ""), session.current_question["correct_answer"])
+                           if session.answers.get(s.id) else False}
+            for s in session.students.values()
+        ] if session.phase == "revealed" and session.current_question and session.current_question.get("question_type") == "spr" else None,
     })
 
     try:
@@ -209,6 +227,7 @@ async def host_ws(websocket: WebSocket, session_id: str):
                     await _send(websocket, {"type": "error", "detail": str(exc)})
                     continue
 
+                q["question_type"]          = "spr" if _is_spr(q) else "mcq"
                 session.current_question    = q
                 session.phase               = "question"
                 session.answers             = {}
@@ -229,32 +248,41 @@ async def host_ws(websocket: WebSocket, session_id: str):
             elif msg_type == "reveal":
                 if not session.current_question:
                     continue
-                session.phase   = "revealed"
-                correct         = session.current_question["correct_answer"]
-                bd              = _breakdown(session)
+                session.phase = "revealed"
+                correct       = session.current_question["correct_answer"]
+                is_spr        = session.current_question.get("question_type") == "spr"
 
                 # Award points and send personalised result to each student
+                spr_results = []
                 for s in session.students.values():
-                    ans     = session.answers.get(s.id)
-                    t       = session.answer_times.get(s.id)
-                    elapsed = (t - session.question_started_at) if t else TIME_LIMIT
-                    pts     = _score(ans == correct, elapsed)
-                    s.score += pts
+                    ans        = session.answers.get(s.id)
+                    t          = session.answer_times.get(s.id)
+                    elapsed    = (t - session.question_started_at) if t else TIME_LIMIT
+                    is_correct = _spr_correct(ans, correct) if (is_spr and ans) else (ans == correct)
+                    pts        = _score(is_correct, elapsed)
+                    s.score   += pts
                     await _send(s.ws, {
-                        "type":          "revealed",
+                        "type":           "revealed",
                         "correct_answer": correct,
-                        "your_answer":   ans,
-                        "is_correct":    ans == correct,
-                        "points_earned": pts,
-                        "total_score":   s.score,
+                        "your_answer":    ans,
+                        "is_correct":     is_correct,
+                        "points_earned":  pts,
+                        "total_score":    s.score,
                     })
+                    if is_spr:
+                        spr_results.append({"name": s.name, "answer": ans, "is_correct": is_correct})
 
-                await _send(websocket, {
+                host_msg = {
                     "type":           "revealed",
                     "correct_answer": correct,
-                    "breakdown":      bd,
                     "leaderboard":    _leaderboard(session),
-                })
+                }
+                if is_spr:
+                    host_msg["question_type"] = "spr"
+                    host_msg["spr_results"]   = spr_results
+                else:
+                    host_msg["breakdown"] = _breakdown(session)
+                await _send(websocket, host_msg)
 
             # ── show leaderboard ──────────────────────────────────────────────
             elif msg_type == "leaderboard":
@@ -328,18 +356,20 @@ async def student_ws(websocket: WebSocket, session_id: str):
             else:
                 await _send(websocket, {"type": "question", "question": student_q, "time_limit": TIME_LIMIT})
         elif session.phase == "revealed" and session.current_question:
-            correct  = session.current_question["correct_answer"]
-            ans      = session.answers.get(student_id)
-            t        = session.answer_times.get(student_id)
-            elapsed  = (t - session.question_started_at) if t else TIME_LIMIT
-            pts      = _score(ans == correct, elapsed)
+            correct    = session.current_question["correct_answer"]
+            is_spr     = session.current_question.get("question_type") == "spr"
+            ans        = session.answers.get(student_id)
+            t          = session.answer_times.get(student_id)
+            elapsed    = (t - session.question_started_at) if t else TIME_LIMIT
+            is_correct = _spr_correct(ans, correct) if (is_spr and ans) else (ans == correct)
+            pts        = _score(is_correct, elapsed)
             await _send(websocket, {
-                "type":          "revealed",
+                "type":           "revealed",
                 "correct_answer": correct,
-                "your_answer":   ans,
-                "is_correct":    ans == correct,
-                "points_earned": pts,
-                "total_score":   student.score,
+                "your_answer":    ans,
+                "is_correct":     is_correct,
+                "points_earned":  pts,
+                "total_score":    student.score,
             })
         elif session.phase == "ended":
             await _send(websocket, {"type": "ended"})

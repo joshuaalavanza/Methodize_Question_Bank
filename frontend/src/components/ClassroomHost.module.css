@@ -561,6 +561,43 @@
 .miniBoardName  { flex: 1; font-size: .88rem; color: rgba(255,255,255,.85); }
 .miniBoardScore { font-weight: 700; color: #4a9eff; font-size: .88rem; }
 
+/* ── SPR (free response) ──────────────────────────────── */
+
+.sprHint {
+  font-size: .85rem;
+  color: rgba(255,255,255,.5);
+  font-style: italic;
+  margin: 8px 0 16px;
+}
+
+.sprResultList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.sprResultRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: .9rem;
+}
+
+.sprCorrect { background: rgba(39,174,96,.2); border: 1px solid rgba(39,174,96,.4); }
+.sprWrong   { background: rgba(231,76,60,.15); border: 1px solid rgba(231,76,60,.3); }
+
+.sprResultName  { flex: 1; font-weight: 600; color: rgba(255,255,255,.85); }
+.sprResultAnswer { font-weight: 700; color: #fff; min-width: 60px; text-align: right; }
+.sprResultMark  { font-size: 1rem; font-weight: 800; width: 20px; text-align: center; }
+.sprCorrect .sprResultMark { color: #27ae60; }
+.sprWrong   .sprResultMark { color: #e74c3c; }
+
 /* End session button */
 .endBtn {
   align-self: flex-start;

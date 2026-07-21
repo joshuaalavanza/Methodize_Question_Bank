@@ -20,8 +20,9 @@ export default function ClassroomHost({ onClose }) {
   const [hostPhase,  setHostPhase]  = useState('waiting')   // waiting|question|revealed
   const [students,   setStudents]   = useState([])           // [{id,name,score}]
   const [question,   setQuestion]   = useState(null)
-  const [breakdown,  setBreakdown]  = useState(null)         // {A:n, B:n, C:n, D:n}
-  const [ansCount,   setAnsCount]   = useState({ done: 0, total: 0 })
+  const [breakdown,   setBreakdown]  = useState(null)         // {A:n, B:n, C:n, D:n}
+  const [sprResults,  setSprResults] = useState(null)         // [{name, answer, is_correct}]
+  const [ansCount,    setAnsCount]   = useState({ done: 0, total: 0 })
   const [leaderboard, setLeaderboard] = useState(null)
   const [timeLeft,   setTimeLeft]   = useState(null)
   const wsRef    = useRef(null)
@@ -118,7 +119,11 @@ export default function ClassroomHost({ onClose }) {
             if (msg.time_remaining > 0) startTimer(Math.round(msg.time_remaining))
           } else if (msg.phase === 'revealed' && msg.current_question) {
             setQuestion(msg.current_question)
-            setBreakdown(msg.breakdown || { A: 0, B: 0, C: 0, D: 0 })
+            if (msg.current_question.question_type === 'spr') {
+              setSprResults(msg.spr_results || [])
+            } else {
+              setBreakdown(msg.breakdown || { A: 0, B: 0, C: 0, D: 0 })
+            }
             setLeaderboard(msg.leaderboard || null)
             setHostPhase('revealed')
           } else if (msg.phase === 'ended') {
@@ -136,6 +141,7 @@ export default function ClassroomHost({ onClose }) {
           clearTimer()
           setQuestion(msg.question)
           setBreakdown({ A: 0, B: 0, C: 0, D: 0 })
+          setSprResults(null)
           setAnsCount({ done: 0, total: 0 })
           setLeaderboard(null)
           setHostPhase('question')
@@ -147,7 +153,11 @@ export default function ClassroomHost({ onClose }) {
           break
         case 'revealed':
           clearTimer()
-          setBreakdown(msg.breakdown)
+          if (msg.question_type === 'spr') {
+            setSprResults(msg.spr_results || [])
+          } else {
+            setBreakdown(msg.breakdown)
+          }
           setLeaderboard(msg.leaderboard)
           setHostPhase('revealed')
           break
@@ -351,20 +361,23 @@ export default function ClassroomHost({ onClose }) {
                 <p className={styles.liveQText}>{question.question_text.slice(0, 300)}{question.question_text.length > 300 ? '…' : ''}</p>
               )}
 
-              <div className={styles.bars}>
-                {LABELS.map((label, i) => {
-                  const choiceText = (question.choices[i] || '').replace(/^[A-D]\)\s*/, '')
-                  return (
-                    <div key={label} className={styles.barRow}>
-                      <span className={styles.barLabel} style={{ color: COLORS[i] }}>{label}</span>
-                      <div className={styles.barTrack}>
-                        {/* no fill shown until reveal — hides peer answers from projected screen */}
-                        <span className={styles.barText}>{choiceText}</span>
+              {question.question_type === 'spr' ? (
+                <p className={styles.sprHint}>Free response — students type their answer</p>
+              ) : (
+                <div className={styles.bars}>
+                  {LABELS.map((label, i) => {
+                    const choiceText = (question.choices[i] || '').replace(/^[A-D]\)\s*/, '')
+                    return (
+                      <div key={label} className={styles.barRow}>
+                        <span className={styles.barLabel} style={{ color: COLORS[i] }}>{label}</span>
+                        <div className={styles.barTrack}>
+                          <span className={styles.barText}>{choiceText}</span>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
 
               <p className={styles.ansStatus}>
                 {ansCount.done} / {ansCount.total} answered
@@ -379,7 +392,7 @@ export default function ClassroomHost({ onClose }) {
           {hostPhase === 'revealed' && question && (
             <div className={styles.liveBlock}>
               <p className={styles.revealLabel}>
-                Correct answer: <strong style={{ color: COLORS[LABELS.indexOf(question.correct_answer)] }}>
+                Correct answer: <strong style={{ color: question.question_type === 'spr' ? '#27ae60' : COLORS[LABELS.indexOf(question.correct_answer)] }}>
                   {question.correct_answer}
                 </strong>
               </p>
@@ -392,24 +405,36 @@ export default function ClassroomHost({ onClose }) {
                 />
               )}
 
-              <div className={styles.bars}>
-                {LABELS.map((label, i) => {
-                  const count      = breakdown?.[label] ?? 0
-                  const pct        = Math.round(count / maxCount * 100)
-                  const isCorrect  = label === question.correct_answer
-                  const choiceText = (question.choices[i] || '').replace(/^[A-D]\)\s*/, '')
-                  return (
-                    <div key={label} className={`${styles.barRow} ${isCorrect ? styles.barCorrect : ''}`}>
-                      <span className={styles.barLabel} style={{ color: COLORS[i] }}>{label}</span>
-                      <div className={styles.barTrack}>
-                        <div className={styles.barFill} style={{ width: `${pct}%`, background: COLORS[i] }} />
-                        <span className={styles.barText}>{choiceText}</span>
-                      </div>
-                      <span className={styles.barCount}>{count}{isCorrect ? ' ✓' : ''}</span>
+              {question.question_type === 'spr' ? (
+                <div className={styles.sprResultList}>
+                  {(sprResults || []).map((r, i) => (
+                    <div key={i} className={`${styles.sprResultRow} ${r.is_correct ? styles.sprCorrect : styles.sprWrong}`}>
+                      <span className={styles.sprResultName}>{r.name}</span>
+                      <span className={styles.sprResultAnswer}>{r.answer ?? <em>no answer</em>}</span>
+                      <span className={styles.sprResultMark}>{r.is_correct ? '✓' : '✗'}</span>
                     </div>
-                  )
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.bars}>
+                  {LABELS.map((label, i) => {
+                    const count      = breakdown?.[label] ?? 0
+                    const pct        = Math.round(count / maxCount * 100)
+                    const isCorrect  = label === question.correct_answer
+                    const choiceText = (question.choices[i] || '').replace(/^[A-D]\)\s*/, '')
+                    return (
+                      <div key={label} className={`${styles.barRow} ${isCorrect ? styles.barCorrect : ''}`}>
+                        <span className={styles.barLabel} style={{ color: COLORS[i] }}>{label}</span>
+                        <div className={styles.barTrack}>
+                          <div className={styles.barFill} style={{ width: `${pct}%`, background: COLORS[i] }} />
+                          <span className={styles.barText}>{choiceText}</span>
+                        </div>
+                        <span className={styles.barCount}>{count}{isCorrect ? ' ✓' : ''}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
 
               <div className={styles.revealActions}>
                 <button className={styles.boardBtn} onClick={() => sendToHost({ type: 'leaderboard' })}>

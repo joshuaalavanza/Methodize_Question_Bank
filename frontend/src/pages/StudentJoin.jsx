@@ -10,11 +10,12 @@ const MAX_RETRIES = 6
 export default function StudentJoin({ sessionId }) {
   const storedId = sessionStorage.getItem(STORAGE_KEY(sessionId))
 
-  const [phase, setPhase]   = useState(storedId ? 'reconnecting' : 'join')
-  const [name,  setName]    = useState('')
-  const [error, setError]   = useState('')
-  const [data,  setData]    = useState({})        // current phase payload
-  const [timeLeft, setTime] = useState(null)
+  const [phase,     setPhase]   = useState(storedId ? 'reconnecting' : 'join')
+  const [name,      setName]    = useState('')
+  const [error,     setError]   = useState('')
+  const [data,      setData]    = useState({})        // current phase payload
+  const [timeLeft,  setTime]    = useState(null)
+  const [sprAnswer, setSprAnswer] = useState('')
   const wsRef      = useRef(null)
   const timerRef   = useRef(null)
   const retryRef   = useRef(0)
@@ -64,6 +65,7 @@ export default function StudentJoin({ sessionId }) {
           break
         case 'question':
           clearTimer()
+          setSprAnswer('')
           setData({ question: msg.question, timeLimit: msg.time_limit })
           setPhase('question')
           startTimer(msg.time_limit)
@@ -203,6 +205,7 @@ export default function StudentJoin({ sessionId }) {
   if (phase === 'question') {
     const { question, timeLimit } = data
     const progress = timeLeft != null ? timeLeft / timeLimit : 1
+    const isSpr = question.question_type === 'spr'
     return (
       <div className={styles.screen}>
         <div className={styles.timerBar}>
@@ -216,25 +219,43 @@ export default function StudentJoin({ sessionId }) {
           <span className={styles.qTime}>{timeLeft ?? timeLimit}s</span>
         </div>
         <div className={styles.qText}>{question.question_text}</div>
-        <div className={styles.choiceGrid}>
-          {question.choices.map((c, i) => (
-            <button
-              key={i}
-              className={styles.choiceBtn}
-              style={{ background: COLORS[i] }}
-              onClick={() => sendAnswer(LABELS[i])}
-            >
-              <span className={styles.choiceLetter}>{LABELS[i]}</span>
-              <span className={styles.choiceText}>{c.replace(/^[A-D]\)\s*/, '')}</span>
+        {isSpr ? (
+          <form className={styles.sprForm} onSubmit={e => { e.preventDefault(); if (sprAnswer.trim()) sendAnswer(sprAnswer.trim()) }}>
+            <input
+              className={styles.sprInput}
+              type="text"
+              inputMode="decimal"
+              placeholder="Enter your answer"
+              value={sprAnswer}
+              onChange={e => setSprAnswer(e.target.value)}
+              autoFocus
+            />
+            <button className={styles.sprSubmit} type="submit" disabled={!sprAnswer.trim()}>
+              Submit
             </button>
-          ))}
-        </div>
+          </form>
+        ) : (
+          <div className={styles.choiceGrid}>
+            {question.choices.map((c, i) => (
+              <button
+                key={i}
+                className={styles.choiceBtn}
+                style={{ background: COLORS[i] }}
+                onClick={() => sendAnswer(LABELS[i])}
+              >
+                <span className={styles.choiceLetter}>{LABELS[i]}</span>
+                <span className={styles.choiceText}>{c.replace(/^[A-D]\)\s*/, '')}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     )
   }
 
   if (phase === 'answered') {
     const { question, submitted } = data
+    const isSpr = question?.question_type === 'spr'
     return (
       <div className={styles.screen}>
         <div className={styles.qMeta}>
@@ -242,28 +263,35 @@ export default function StudentJoin({ sessionId }) {
           <span className={styles.waitBadge}>Submitted</span>
         </div>
         <div className={styles.qText}>{question?.question_text}</div>
-        <div className={styles.choiceGrid}>
-          {(question?.choices || []).map((c, i) => {
-            const isChosen = LABELS[i] === submitted
-            return (
-              <button
-                key={i}
-                className={styles.choiceBtn}
-                style={{
-                  background: COLORS[i],
-                  opacity: isChosen ? 1 : 0.35,
-                  outline: isChosen ? '3px solid #fff' : 'none',
-                  outlineOffset: '2px',
-                  cursor: 'default',
-                }}
-                disabled
-              >
-                <span className={styles.choiceLetter}>{LABELS[i]}</span>
-                <span className={styles.choiceText}>{c.replace(/^[A-D]\)\s*/, '')}</span>
-              </button>
-            )
-          })}
-        </div>
+        {isSpr ? (
+          <div className={styles.sprAnswered}>
+            <p className={styles.sprAnsweredLabel}>Your answer</p>
+            <p className={styles.sprAnsweredValue}>{submitted}</p>
+          </div>
+        ) : (
+          <div className={styles.choiceGrid}>
+            {(question?.choices || []).map((c, i) => {
+              const isChosen = LABELS[i] === submitted
+              return (
+                <button
+                  key={i}
+                  className={styles.choiceBtn}
+                  style={{
+                    background: COLORS[i],
+                    opacity: isChosen ? 1 : 0.35,
+                    outline: isChosen ? '3px solid #fff' : 'none',
+                    outlineOffset: '2px',
+                    cursor: 'default',
+                  }}
+                  disabled
+                >
+                  <span className={styles.choiceLetter}>{LABELS[i]}</span>
+                  <span className={styles.choiceText}>{c.replace(/^[A-D]\)\s*/, '')}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
         <p className={styles.waitMsg} style={{ textAlign: 'center', marginTop: 16 }}>
           Waiting for the teacher to reveal…
         </p>
