@@ -94,6 +94,32 @@
 }
 .closeBtn:hover { color: #fff; }
 
+.subjectRow {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.subjectBtn {
+  flex: 1;
+  padding: 7px 0;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 7px;
+  color: rgba(255,255,255,.7);
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.subjectBtn:hover { background: rgba(255,255,255,.14); color: #fff; }
+.subjectBtnActive {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
 .filterRow {
   display: flex;
   flex-direction: column;

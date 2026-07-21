@@ -8,6 +8,9 @@ const IMG_VER   = '4'
 const LABELS  = ['A', 'B', 'C', 'D']
 const COLORS  = ['#e74c3c', '#2980b9', '#f39c12', '#27ae60']
 
+const MATH_DOMAINS    = ['Algebra', 'Advanced Math', 'Problem-Solving and Data Analysis', 'Geometry and Trigonometry']
+const ENGLISH_DOMAINS = ['Craft and Structure', 'Standard English Conventions', 'Expression of Ideas', 'Information and Ideas']
+
 export default function ClassroomHost({ onClose }) {
   // ── Session setup ────────────────────────────────────────────────────────
   const [session,  setSession]  = useState(null)   // {session_id, join_url, qr_b64}
@@ -26,11 +29,16 @@ export default function ClassroomHost({ onClose }) {
 
   // ── Question browser ──────────────────────────────────────────────────────
   const [filters,    setFilters]    = useState({ domains: [], skills: [], skills_by_domain: {}, difficulties: [] })
+  const [subject,    setSubject]    = useState('')
   const [domain,     setDomain]     = useState('')
   const [skill,      setSkill]      = useState('')
   const [difficulty, setDifficulty] = useState('')
   const [questions,  setQuestions]  = useState([])
   const [loadingQ,   setLoadingQ]   = useState(false)
+
+  const subjectDomains = subject === 'Math'    ? MATH_DOMAINS
+                       : subject === 'English' ? ENGLISH_DOMAINS
+                       : null
 
   // ── Question preview ──────────────────────────────────────────────────────
   const [previewId,     setPreviewId]     = useState(null)
@@ -50,10 +58,12 @@ export default function ClassroomHost({ onClose }) {
   useEffect(() => { api.getFilters().then(setFilters) }, [])
   useEffect(() => {
     setLoadingQ(true)
-    api.getQuestions(domain || null, skill || null, difficulty || null)
+    const domainParam = domain || null
+    const domainList  = subjectDomains && !domain ? subjectDomains : null
+    api.getQuestions(domainParam, skill || null, difficulty || null, domainList)
       .then(setQuestions)
       .finally(() => setLoadingQ(false))
-  }, [domain, skill, difficulty])
+  }, [subject, domain, skill, difficulty])
 
   function clearTimer() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
@@ -189,10 +199,20 @@ export default function ClassroomHost({ onClose }) {
             <button className={styles.closeBtn} onClick={onClose}>✕</button>
           </div>
 
+          <div className={styles.subjectRow}>
+            {['Math', 'English'].map(s => (
+              <button
+                key={s}
+                className={`${styles.subjectBtn} ${subject === s ? styles.subjectBtnActive : ''}`}
+                onClick={() => { setSubject(prev => prev === s ? '' : s); setDomain(''); setSkill('') }}
+              >{s}</button>
+            ))}
+          </div>
+
           <div className={styles.filterRow}>
             <select value={domain} onChange={e => { setDomain(e.target.value); setSkill('') }} className={styles.sel}>
               <option value="">All domains</option>
-              {filters.domains.map(d => <option key={d} value={d}>{d}</option>)}
+              {(subjectDomains || filters.domains).map(d => <option key={d} value={d}>{d}</option>)}
             </select>
             <select value={skill} onChange={e => setSkill(e.target.value)} className={styles.sel}>
               <option value="">All skills</option>
