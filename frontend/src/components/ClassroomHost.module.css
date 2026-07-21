@@ -205,6 +205,13 @@
 .diffMedium { background: #f39c1222; color: #f39c12; }
 .diffEasy   { background: #27ae6022; color: #27ae60; }
 
+.qRowDone {
+  font-size: .7rem;
+  font-weight: 700;
+  color: #27ae60;
+  margin-left: auto;
+}
+
 .qRowText {
   font-size: .8rem;
   color: rgba(255,255,255,.75);

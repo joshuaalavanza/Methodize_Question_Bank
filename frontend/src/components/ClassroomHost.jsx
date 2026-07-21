@@ -37,6 +37,7 @@ export default function ClassroomHost({ onClose }) {
   const [questions,  setQuestions]  = useState([])
   const [loadingQ,   setLoadingQ]   = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [usedIds,    setUsedIds]    = useState(new Set())
 
   const subjectDomains = subject === 'Math'    ? MATH_DOMAINS
                        : subject === 'English' ? ENGLISH_DOMAINS
@@ -124,6 +125,7 @@ export default function ClassroomHost({ onClose }) {
           break
         case 'question_pushed':
           setQuestion(msg.question)
+          setUsedIds(prev => new Set([...prev, msg.question.id]))
           setBreakdown({ A: 0, B: 0, C: 0, D: 0 })
           setSprResults(null)
           setAnsCount({ done: 0, total: 0 })
@@ -244,6 +246,7 @@ export default function ClassroomHost({ onClose }) {
                 <div className={styles.qRowMeta}>
                   <span className={styles.qRowSkill}>{q.skill}</span>
                   <span className={`${styles.qRowDiff} ${styles['diff' + q.difficulty]}`}>{q.difficulty}</span>
+                  {usedIds.has(q.id) && <span className={styles.qRowDone}>✓ done</span>}
                 </div>
                 <p className={styles.qRowText}>{q.question_text.slice(0, 90)}{q.question_text.length > 90 ? '…' : ''}</p>
               </div>
