@@ -179,11 +179,21 @@ async def host_ws(websocket: WebSocket, session_id: str):
         return
     session.host_ws = websocket
 
+    time_remaining = None
+    if session.phase == "question" and session.question_started_at:
+        time_remaining = max(0.0, TIME_LIMIT - (time.time() - session.question_started_at))
+
     await _send(websocket, {
-        "type":    "connected",
-        "count":   len(session.students),
-        "students": [{"id": s.id, "name": s.name, "score": s.score}
-                     for s in session.students.values()],
+        "type":             "connected",
+        "count":            len(session.students),
+        "students":         [{"id": s.id, "name": s.name, "score": s.score}
+                             for s in session.students.values()],
+        "phase":            session.phase,
+        "current_question": session.current_question,
+        "breakdown":        _breakdown(session) if session.answers else None,
+        "answer_count":     len(session.answers),
+        "leaderboard":      _leaderboard(session) if session.phase == "revealed" else None,
+        "time_remaining":   time_remaining,
     })
 
     try:
@@ -312,8 +322,9 @@ async def student_ws(websocket: WebSocket, session_id: str):
         if session.phase == "question" and session.current_question:
             student_q = {k: v for k, v in session.current_question.items() if k != "correct_answer"}
             if student_id in session.answers:
-                # Already answered — show the "waiting" screen again
-                await _send(websocket, {"type": "answered", "answer": session.answers[student_id]})
+                # Already answered — send question too so a reloaded page can render it
+                student_q = {k: v for k, v in session.current_question.items() if k != "correct_answer"}
+                await _send(websocket, {"type": "answered", "answer": session.answers[student_id], "question": student_q})
             else:
                 await _send(websocket, {"type": "question", "question": student_q, "time_limit": TIME_LIMIT})
         elif session.phase == "revealed" and session.current_question:

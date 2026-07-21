@@ -70,7 +70,7 @@ export default function StudentJoin({ sessionId }) {
           break
         case 'answered':
           clearTimer()
-          setData(d => ({ ...d, submitted: msg.answer }))
+          setData(d => ({ ...d, submitted: msg.answer, ...(msg.question && { question: msg.question }) }))
           setPhase('answered')
           break
         case 'revealed':

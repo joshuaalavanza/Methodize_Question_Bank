@@ -93,6 +93,20 @@ export default function ClassroomHost({ onClose }) {
       switch (msg.type) {
         case 'connected':
           setStudents(msg.students || [])
+          if (msg.phase === 'question' && msg.current_question) {
+            setQuestion(msg.current_question)
+            setBreakdown(msg.breakdown || { A: 0, B: 0, C: 0, D: 0 })
+            setAnsCount({ done: msg.answer_count || 0, total: (msg.students || []).length })
+            setHostPhase('question')
+            if (msg.time_remaining > 0) startTimer(Math.round(msg.time_remaining))
+          } else if (msg.phase === 'revealed' && msg.current_question) {
+            setQuestion(msg.current_question)
+            setBreakdown(msg.breakdown || { A: 0, B: 0, C: 0, D: 0 })
+            setLeaderboard(msg.leaderboard || null)
+            setHostPhase('revealed')
+          } else if (msg.phase === 'ended') {
+            setHostPhase('ended')
+          }
           break
         case 'student_joined':
           setStudents(prev => [...prev.filter(s => s.id !== msg.student_id),
