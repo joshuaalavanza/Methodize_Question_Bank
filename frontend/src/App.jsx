@@ -6,6 +6,7 @@ import AuthModal from './components/AuthModal'
 import ProgressModal from './components/ProgressModal'
 import Dashboard from './components/Dashboard'
 import DropInModal from './components/DropInModal'
+import ClassroomHost from './components/ClassroomHost'
 import styles from './App.module.css'
 
 const MATH_DOMAINS    = ['Algebra', 'Advanced Math', 'Problem-Solving and Data Analysis', 'Geometry and Trigonometry']
@@ -15,9 +16,10 @@ export default function App() {
   // ── auth ──────────────────────────────────────────────────────────────────
   const [user, setUser]           = useState(null)
   const [authReady, setAuthReady] = useState(false)
-  const [showProgress, setShowProgress]   = useState(false)
+  const [showProgress,  setShowProgress]  = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
-  const [showDropIn, setShowDropIn]       = useState(false)
+  const [showDropIn,    setShowDropIn]    = useState(false)
+  const [showClassroom, setShowClassroom] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('quarry_token')
@@ -150,8 +152,9 @@ export default function App() {
   return (
     <div className={styles.app}>
       {!user && <AuthModal onLogin={handleLogin} />}
-      {showProgress && <ProgressModal onClose={() => setShowProgress(false)} />}
-      {showDropIn   && <DropInModal   onClose={() => setShowDropIn(false)} />}
+      {showProgress  && <ProgressModal  onClose={() => setShowProgress(false)} />}
+      {showDropIn    && <DropInModal    onClose={() => setShowDropIn(false)} />}
+      {showClassroom && <ClassroomHost  onClose={() => setShowClassroom(false)} />}
 
       <header className={styles.header}>
         <div className={styles.headerInner}>
@@ -165,12 +168,20 @@ export default function App() {
             </button>
             <span className={styles.userName}>{user.username}</span>
             {user.is_admin && (
-              <button
-                className={`${styles.progressBtn} ${showDashboard ? styles.progressBtnActive : ''}`}
-                onClick={() => setShowDashboard(v => !v)}
-              >
-                {showDashboard ? '← Practice' : 'Dashboard'}
-              </button>
+              <>
+                <button
+                  className={styles.progressBtn}
+                  onClick={() => setShowClassroom(true)}
+                >
+                  Classroom
+                </button>
+                <button
+                  className={`${styles.progressBtn} ${showDashboard ? styles.progressBtnActive : ''}`}
+                  onClick={() => setShowDashboard(v => !v)}
+                >
+                  {showDashboard ? '← Practice' : 'Dashboard'}
+                </button>
+              </>
             )}
             <button className={styles.progressBtn} onClick={() => setShowProgress(true)}>Progress</button>
             <button className={styles.logoutBtn} onClick={handleLogout}>Log out</button>

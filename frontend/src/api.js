@@ -1,4 +1,16 @@
-const BASE = 'http://localhost:8000'
+// In local dev both servers run separately (Vite :5173, uvicorn :8000).
+// When served via ngrok or production, FastAPI serves the built frontend too,
+// so everything is same-origin and we don't append a port.
+function _apiBase() {
+  const h = window.location.hostname
+  const isLocal = /^(localhost|127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(h)
+  return isLocal ? `http://${h}:8000` : window.location.origin
+}
+
+export const API_BASE = _apiBase()
+export const WS_BASE  = API_BASE.replace(/^http/, 'ws') + '/classroom'
+
+const BASE = API_BASE
 
 function authHeaders() {
   const token = localStorage.getItem('quarry_token')
@@ -40,6 +52,8 @@ export const saveAttempt     = (attempt)    => post('/attempts', attempt)
 export const dropIn          = (body)       => post('/drop-in', body)
 export const getDashboard    = ()           => get('/dashboard')
 export const getStudentDetail = (userId)   => get(`/dashboard/${userId}`)
+
+export const createClassroomSession = () => post('/classroom/sessions', {})
 
 export const getFilters    = ()           => get('/filters')
 export const getQuestions  = (domain, skill, difficulty, domainList) => {

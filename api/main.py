@@ -20,7 +20,7 @@ import anthropic
 import chromadb
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -28,6 +28,7 @@ from ingestion.load import CHROMA_PATH, COLLECTION_NAME
 from retrieval.similar import find_similar, find_similar_for_text
 from api.db import SessionLocal, User, Attempt
 from api.auth import create_token, require_user, require_admin, is_admin_username
+from api.classroom import router as classroom_router
 
 _claude = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
@@ -50,6 +51,21 @@ app.add_middleware(
 )
 
 app.mount("/images", StaticFiles(directory="data/structured/images"), name="images")
+app.include_router(classroom_router)
+
+# Serve the built frontend when running via ngrok / production.
+# Only active after `make build` — ignored in local dev (Vite runs separately).
+_DIST = "frontend/dist"
+if os.path.isdir(_DIST) and os.path.isdir(f"{_DIST}/assets"):
+    app.mount("/assets", StaticFiles(directory=f"{_DIST}/assets"), name="frontend_assets")
+
+    @app.get("/")
+    async def _serve_root():
+        return FileResponse(f"{_DIST}/index.html")
+
+    @app.get("/join/{session_id}")
+    async def _serve_join(session_id: str):
+        return FileResponse(f"{_DIST}/index.html")
 
 
 # ── response models ───────────────────────────────────────────────────────────
@@ -99,11 +115,20 @@ def _build_where(domain, skill, difficulty, source, domains=None) -> dict | None
     return {"$and": conditions} if len(conditions) > 1 else conditions[0]
 
 
-_IMAGE_BASE = "http://localhost:8000/images"
-_IMAGE_VERSION = "3"  # bump whenever crops are regenerated to bust browser cache
+_IMAGE_VERSION = "4"  # bump whenever crops are regenerated to bust browser cache
 
 
-def _to_detail(qid: str, doc: str, meta: dict) -> QuestionDetail:
+def _image_base(request: Request) -> str:
+    # When behind ngrok, use the public scheme+host from forwarded headers.
+    # In local dev those headers are absent so we fall back to the direct LAN address.
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host  = request.headers.get("x-forwarded-host")  or request.url.hostname
+    if proto == "https" or host != request.url.hostname:
+        return f"{proto}://{host}/images"
+    return f"http://{host}:8000/images"
+
+
+def _to_detail(qid: str, doc: str, meta: dict, image_base: str) -> QuestionDetail:
     img_path = meta.get("image_path") or ""
     return QuestionDetail(
         id=qid,
@@ -115,7 +140,7 @@ def _to_detail(qid: str, doc: str, meta: dict) -> QuestionDetail:
         choices=json.loads(meta["choices"]),
         correct_answer=meta["correct_answer"],
         explanation=meta["explanation"],
-        image_url=f"{_IMAGE_BASE}/{img_path}?v={_IMAGE_VERSION}" if img_path else None,
+        image_url=f"{image_base}/{img_path}?v={_IMAGE_VERSION}" if img_path else None,
     )
 
 
@@ -155,13 +180,14 @@ def list_questions(
 
 
 @app.get("/questions/{question_id}/similar", response_model=list[SimilarItem])
-def similar_questions(question_id: str, n: int = Query(3, ge=1, le=10)):
+def similar_questions(request: Request, question_id: str, n: int = Query(3, ge=1, le=10)):
     """Return top-n similar questions using hybrid skill-filter + embedding rank."""
     try:
         results = find_similar(question_id, n=n)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
+    image_base = _image_base(request)
     return [
         SimilarItem(
             id=r.id,
@@ -173,7 +199,7 @@ def similar_questions(question_id: str, n: int = Query(3, ge=1, le=10)):
             choices=r.choices,
             correct_answer=r.correct_answer,
             explanation=r.explanation,
-            image_url=f"{_IMAGE_BASE}/{r.image_path}?v={_IMAGE_VERSION}" if r.image_path else None,
+            image_url=f"{image_base}/{r.image_path}?v={_IMAGE_VERSION}" if r.image_path else None,
             distance=r.distance,
             fallback_used=r.fallback_used,
         )
@@ -188,7 +214,7 @@ def get_question(request: Request, question_id: str):
     r = col.get(ids=[question_id], include=["metadatas", "documents"])
     if not r["ids"]:
         raise HTTPException(status_code=404, detail=f"Question '{question_id}' not found")
-    return _to_detail(r["ids"][0], r["documents"][0], r["metadatas"][0])
+    return _to_detail(r["ids"][0], r["documents"][0], r["metadatas"][0], _image_base(request))
 
 
 @app.get("/filters", response_model=FiltersResponse)
@@ -406,6 +432,7 @@ def get_student_detail(user_id: int, request: Request, _admin: dict = Depends(re
         else:
             text_map, meta_map = {}, {}
 
+        image_base = _image_base(request)
         history = []
         for a in attempts:
             meta = meta_map.get(a.question_id, {})
@@ -420,7 +447,7 @@ def get_student_detail(user_id: int, request: Request, _admin: dict = Depends(re
                 "correct_answer": meta.get("correct_answer", ""),
                 "choices":       json.loads(meta.get("choices", "[]")),
                 "explanation":   meta.get("explanation", ""),
-                "image_url":     f"{_IMAGE_BASE}/{img}?v={_IMAGE_VERSION}" if img else None,
+                "image_url":     f"{image_base}/{img}?v={_IMAGE_VERSION}" if img else None,
                 "created_at":    a.created_at.isoformat(),
             })
 
@@ -593,7 +620,7 @@ class DropInResult(BaseModel):
 
 
 @app.post("/drop-in", response_model=DropInResult)
-def drop_in(body: DropInRequest, _user: dict = Depends(require_user)):
+def drop_in(body: DropInRequest, request: Request, _user: dict = Depends(require_user)):
     """Analyse any SAT question (text or image) and return similar bank questions."""
     if not body.text and not body.image_b64:
         raise HTTPException(status_code=400, detail="Provide text or an image")
@@ -656,6 +683,7 @@ def drop_in(body: DropInRequest, _user: dict = Depends(require_user)):
         domain=domain,
     )
 
+    image_base = _image_base(request)
     similar_items = [
         SimilarItem(
             id=r.id,
@@ -667,7 +695,7 @@ def drop_in(body: DropInRequest, _user: dict = Depends(require_user)):
             choices=r.choices,
             correct_answer=r.correct_answer,
             explanation=r.explanation,
-            image_url=f"{_IMAGE_BASE}/{r.image_path}?v={_IMAGE_VERSION}" if r.image_path else None,
+            image_url=f"{image_base}/{r.image_path}?v={_IMAGE_VERSION}" if r.image_path else None,
             distance=r.distance,
             fallback_used=r.fallback_used,
         )

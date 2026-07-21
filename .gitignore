@@ -24,11 +24,8 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 
-# ChromaDB is tracked so cloners get pre-populated data without re-running ingestion.
-# Ignore runtime churn files that change on every query.
-data/chroma/**/data_level0.bin
-data/chroma/**/length.bin
-data/chroma/chroma.sqlite3
+# ChromaDB is fully tracked — all binary index files included — so Railway and
+# other deployments get a pre-populated vector store without re-running ingestion.
 
 # SQLite user/attempt DB — runtime state, not source data
 data/quarry.db

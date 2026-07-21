@@ -90,25 +90,25 @@ def save_question_crops(
             crop_bottom = hits2[0].y0 - 8 if hits2 else h
 
         # MC: tighten bottom to just above the first "A." answer choice.
-        # Strategy: the real "A." choice sits immediately above "B." (~40pt gap);
-        # passage text containing "A." (e.g. "DNA.") is much further from "B.".
-        # So find the "A." that is closest from above to the first "B." in range,
-        # then accept it only if the gap is < 75pt (real choices) vs > 75pt (false hits).
+        # Strategy: find the first B. in range that has an A. just above it
+        # within 150pt. Iterating rather than taking only the topmost B. avoids
+        # false matches from passage text like "Napoleon B. Johnson" which has no
+        # A. before it but would otherwise block the real A./B. choice pair.
         if mc_ids is None or qid in mc_ids:
             a_hits = page.search_for("A.", quads=False)
             b_hits = page.search_for("B.", quads=False)
             in_range_a = [r for r in a_hits if crop_top < r.y0 < crop_bottom]
             in_range_b = [r for r in b_hits if crop_top < r.y0 < crop_bottom]
-            if in_range_b and in_range_a:
-                first_b = min(in_range_b, key=lambda r: r.y0)
-                # Highest A. that still sits above first B.
-                above_b = [r for r in in_range_a if r.y0 < first_b.y0]
-                if above_b:
-                    closest_a = max(above_b, key=lambda r: r.y0)
-                    if first_b.y0 - closest_a.y0 < 75:
-                        candidate = closest_a.y0 - 6
-                        if candidate - crop_top > 20:
-                            crop_bottom = candidate
+            for b_rect in sorted(in_range_b, key=lambda r: r.y0):
+                above_b = [r for r in in_range_a if r.y0 < b_rect.y0]
+                if not above_b:
+                    continue
+                closest_a = max(above_b, key=lambda r: r.y0)
+                if b_rect.y0 - closest_a.y0 < 150:
+                    candidate = closest_a.y0 - 6
+                    if candidate - crop_top > 20:
+                        crop_bottom = candidate
+                    break
 
         # Skip if crop region is empty or too small to render
         if crop_bottom - crop_top < 10:
