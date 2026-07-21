@@ -17,32 +17,14 @@ export default function StudentJoin({ sessionId }) {
   const [name,      setName]    = useState('')
   const [error,     setError]   = useState('')
   const [data,      setData]    = useState({})        // current phase payload
-  const [timeLeft,  setTime]    = useState(null)
   const [sprAnswer, setSprAnswer] = useState('')
   const wsRef      = useRef(null)
-  const timerRef   = useRef(null)
   const retryRef   = useRef(0)
   const intentional = useRef(false)   // true when we close on purpose (ended / error code)
-
-  function clearTimer() {
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
-  }
-
-  function startTimer(limit) {
-    clearTimer()
-    setTime(limit)
-    const end = Date.now() + limit * 1000
-    timerRef.current = setInterval(() => {
-      const left = Math.max(0, Math.ceil((end - Date.now()) / 1000))
-      setTime(left)
-      if (left === 0) clearTimer()
-    }, 250)
-  }
 
   useEffect(() => () => {
     intentional.current = true
     wsRef.current?.close()
-    clearTimer()
   }, [])
 
   // Auto-rejoin on mount if we have a stored student_id (page was reloaded by browser)
@@ -67,19 +49,15 @@ export default function StudentJoin({ sessionId }) {
           setPhase('waiting')   // follow-up message from server will override to correct phase
           break
         case 'question':
-          clearTimer()
           setSprAnswer('')
-          setData({ question: msg.question, timeLimit: msg.time_limit })
+          setData({ question: msg.question })
           setPhase('question')
-          startTimer(msg.time_limit)
           break
         case 'answered':
-          clearTimer()
           setData(d => ({ ...d, submitted: msg.answer, ...(msg.question && { question: msg.question }) }))
           setPhase('answered')
           break
         case 'revealed':
-          clearTimer()
           setData(msg)
           setPhase('revealed')
           break
@@ -206,20 +184,12 @@ export default function StudentJoin({ sessionId }) {
   )
 
   if (phase === 'question') {
-    const { question, timeLimit } = data
-    const progress = timeLeft != null ? timeLeft / timeLimit : 1
+    const { question } = data
     const isSpr = question.question_type === 'spr'
     return (
       <div className={styles.screen}>
-        <div className={styles.timerBar}>
-          <div
-            className={styles.timerFill}
-            style={{ width: `${progress * 100}%`, background: progress > 0.4 ? '#27ae60' : '#e74c3c' }}
-          />
-        </div>
         <div className={styles.qMeta}>
           <span className={styles.qSkill}>{question.skill}</span>
-          <span className={styles.qTime}>{timeLeft ?? timeLimit}s</span>
         </div>
         <div className={styles.qText}>{question.question_text}</div>
         {isSpr ? (

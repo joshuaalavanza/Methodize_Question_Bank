@@ -15,7 +15,6 @@ import json
 import os
 import secrets
 import socket
-import time
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -33,7 +32,6 @@ router = APIRouter(prefix="/classroom", tags=["classroom"])
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 SCORE_MAX  = 1000
-TIME_LIMIT = 30   # seconds per question
 
 CHOICE_COLORS = {"A": "#e74c3c", "B": "#2980b9", "C": "#f39c12", "D": "#27ae60"}
 
@@ -55,9 +53,7 @@ class Session:
     students:            dict[str, Student]           = field(default_factory=dict)
     phase:               str                          = "waiting"   # waiting|question|revealed|ended
     current_question:    Optional[dict]               = None
-    question_started_at: Optional[float]              = None
     answers:             dict[str, str]               = field(default_factory=dict)   # student_id → letter
-    answer_times:        dict[str, float]             = field(default_factory=dict)   # student_id → timestamp
 
 
 # Module-level session store (ephemeral — lost on server restart, which is fine)
@@ -84,11 +80,8 @@ def _make_qr(url: str) -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
-def _score(is_correct: bool, elapsed: float) -> int:
-    if not is_correct:
-        return 0
-    ratio = max(0.0, 1.0 - elapsed / TIME_LIMIT * 0.5)
-    return round(SCORE_MAX * ratio)
+def _score(is_correct: bool) -> int:
+    return SCORE_MAX if is_correct else 0
 
 
 def _is_spr(question: dict) -> bool:
@@ -191,10 +184,6 @@ async def host_ws(websocket: WebSocket, session_id: str):
         return
     session.host_ws = websocket
 
-    time_remaining = None
-    if session.phase == "question" and session.question_started_at:
-        time_remaining = max(0.0, TIME_LIMIT - (time.time() - session.question_started_at))
-
     await _send(websocket, {
         "type":             "connected",
         "count":            len(session.students),
@@ -205,7 +194,6 @@ async def host_ws(websocket: WebSocket, session_id: str):
         "breakdown":        _breakdown(session) if session.answers else None,
         "answer_count":     len(session.answers),
         "leaderboard":      _leaderboard(session) if session.phase == "revealed" else None,
-        "time_remaining":   time_remaining,
         "spr_results":      [
             {"name": s.name, "answer": session.answers.get(s.id),
              "is_correct": _spr_correct(session.answers.get(s.id, ""), session.current_question["correct_answer"])
@@ -227,22 +215,16 @@ async def host_ws(websocket: WebSocket, session_id: str):
                     await _send(websocket, {"type": "error", "detail": str(exc)})
                     continue
 
-                q["question_type"]          = "spr" if _is_spr(q) else "mcq"
-                session.current_question    = q
-                session.phase               = "question"
-                session.answers             = {}
-                session.answer_times        = {}
-                session.question_started_at = time.time()
+                q["question_type"]       = "spr" if _is_spr(q) else "mcq"
+                session.current_question = q
+                session.phase            = "question"
+                session.answers          = {}
 
-                await _send(websocket, {"type": "question_pushed", "question": q, "time_limit": TIME_LIMIT})
+                await _send(websocket, {"type": "question_pushed", "question": q})
 
                 # Strip correct answer before broadcasting to students
                 student_q = {k: v for k, v in q.items() if k != "correct_answer"}
-                await _broadcast(session, {
-                    "type":       "question",
-                    "question":   student_q,
-                    "time_limit": TIME_LIMIT,
-                })
+                await _broadcast(session, {"type": "question", "question": student_q})
 
             # ── reveal answer ─────────────────────────────────────────────────
             elif msg_type == "reveal":
@@ -256,10 +238,8 @@ async def host_ws(websocket: WebSocket, session_id: str):
                 spr_results = []
                 for s in session.students.values():
                     ans        = session.answers.get(s.id)
-                    t          = session.answer_times.get(s.id)
-                    elapsed    = (t - session.question_started_at) if t else TIME_LIMIT
                     is_correct = _spr_correct(ans, correct) if (is_spr and ans) else (ans == correct)
-                    pts        = _score(is_correct, elapsed)
+                    pts        = _score(is_correct)
                     s.score   += pts
                     await _send(s.ws, {
                         "type":           "revealed",
@@ -359,10 +339,8 @@ async def student_ws(websocket: WebSocket, session_id: str):
             correct    = session.current_question["correct_answer"]
             is_spr     = session.current_question.get("question_type") == "spr"
             ans        = session.answers.get(student_id)
-            t          = session.answer_times.get(student_id)
-            elapsed    = (t - session.question_started_at) if t else TIME_LIMIT
             is_correct = _spr_correct(ans, correct) if (is_spr and ans) else (ans == correct)
-            pts        = _score(is_correct, elapsed)
+            pts        = _score(is_correct)
             await _send(websocket, {
                 "type":           "revealed",
                 "correct_answer": correct,

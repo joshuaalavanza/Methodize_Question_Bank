@@ -26,9 +26,7 @@ export default function ClassroomHost({ onClose }) {
   const [sprResults,  setSprResults] = useState(null)         // [{name, answer, is_correct}]
   const [ansCount,    setAnsCount]   = useState({ done: 0, total: 0 })
   const [leaderboard, setLeaderboard] = useState(null)
-  const [timeLeft,   setTimeLeft]   = useState(null)
   const wsRef    = useRef(null)
-  const timerRef = useRef(null)
 
   // ── Question browser ──────────────────────────────────────────────────────
   const [filters,    setFilters]    = useState({ domains: [], skills: [], skills_by_domain: {}, difficulties: [] })
@@ -75,21 +73,7 @@ export default function ClassroomHost({ onClose }) {
     ? questions.filter(q => q.question_text.toLowerCase().includes(needle))
     : questions
 
-  function clearTimer() {
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
-  }
-  function startTimer(limit) {
-    clearTimer()
-    setTimeLeft(limit)
-    const end = Date.now() + limit * 1000
-    timerRef.current = setInterval(() => {
-      const left = Math.max(0, Math.ceil((end - Date.now()) / 1000))
-      setTimeLeft(left)
-      if (left === 0) clearTimer()
-    }, 250)
-  }
-
-  useEffect(() => () => { wsRef.current?.close(); clearTimer() }, [])
+  useEffect(() => () => { wsRef.current?.close() }, [])
 
   async function startSession() {
     setCreating(true)
@@ -118,7 +102,6 @@ export default function ClassroomHost({ onClose }) {
             setBreakdown(msg.breakdown || { A: 0, B: 0, C: 0, D: 0 })
             setAnsCount({ done: msg.answer_count || 0, total: (msg.students || []).length })
             setHostPhase('question')
-            if (msg.time_remaining > 0) startTimer(Math.round(msg.time_remaining))
           } else if (msg.phase === 'revealed' && msg.current_question) {
             setQuestion(msg.current_question)
             if (msg.current_question.question_type === 'spr') {
@@ -140,21 +123,18 @@ export default function ClassroomHost({ onClose }) {
           setStudents(prev => prev.filter(s => s.id !== msg.student_id))
           break
         case 'question_pushed':
-          clearTimer()
           setQuestion(msg.question)
           setBreakdown({ A: 0, B: 0, C: 0, D: 0 })
           setSprResults(null)
           setAnsCount({ done: 0, total: 0 })
           setLeaderboard(null)
           setHostPhase('question')
-          startTimer(msg.time_limit)
           break
         case 'answer_in':
           setBreakdown(msg.breakdown)
           setAnsCount({ done: msg.count, total: msg.total })
           break
         case 'revealed':
-          clearTimer()
           if (msg.question_type === 'spr') {
             setSprResults(msg.spr_results || [])
           } else {
@@ -167,7 +147,6 @@ export default function ClassroomHost({ onClose }) {
           setLeaderboard(msg.scores)
           break
         case 'ended':
-          clearTimer()
           setHostPhase('ended')
           break
         default:
@@ -351,7 +330,6 @@ export default function ClassroomHost({ onClose }) {
             <div className={styles.liveBlock}>
               <div className={styles.liveHeader}>
                 <span className={styles.liveSkill}>{question.skill} · {question.difficulty}</span>
-                <span className={styles.liveTimer}>{timeLeft ?? '–'}s</span>
               </div>
               {question.image_path ? (
                 <img
