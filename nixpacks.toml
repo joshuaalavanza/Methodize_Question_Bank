@@ -1,0 +1,4 @@
+# Explicitly include Node so nixpacks doesn't skip it when package.json
+# lives in a subdirectory (frontend/) rather than the repo root.
+[phases.setup]
+nixPkgs = ["python313", "nodejs_22"]
