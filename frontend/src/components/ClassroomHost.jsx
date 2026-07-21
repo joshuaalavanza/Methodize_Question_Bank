@@ -35,6 +35,7 @@ export default function ClassroomHost({ onClose }) {
   const [difficulty, setDifficulty] = useState('')
   const [questions,  setQuestions]  = useState([])
   const [loadingQ,   setLoadingQ]   = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const subjectDomains = subject === 'Math'    ? MATH_DOMAINS
                        : subject === 'English' ? ENGLISH_DOMAINS
@@ -58,12 +59,18 @@ export default function ClassroomHost({ onClose }) {
   useEffect(() => { api.getFilters().then(setFilters) }, [])
   useEffect(() => {
     setLoadingQ(true)
+    setSearchQuery('')
     const domainParam = domain || null
     const domainList  = subjectDomains && !domain ? subjectDomains : null
     api.getQuestions(domainParam, skill || null, difficulty || null, domainList)
       .then(setQuestions)
       .finally(() => setLoadingQ(false))
   }, [subject, domain, skill, difficulty])
+
+  const needle = searchQuery.trim().toLowerCase()
+  const displayedQuestions = needle
+    ? questions.filter(q => q.question_text.toLowerCase().includes(needle))
+    : questions
 
   function clearTimer() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
@@ -224,10 +231,20 @@ export default function ClassroomHost({ onClose }) {
             </select>
           </div>
 
+          <div className={styles.searchRow}>
+            <input
+              className={styles.searchInput}
+              type="search"
+              placeholder="Search questions…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+
           <div className={styles.qList}>
             {loadingQ && <p className={styles.loading}>Loading…</p>}
-            {!loadingQ && questions.length === 0 && <p className={styles.loading}>No questions found.</p>}
-            {!loadingQ && questions.map(q => (
+            {!loadingQ && displayedQuestions.length === 0 && <p className={styles.loading}>No questions found.</p>}
+            {!loadingQ && displayedQuestions.map(q => (
               <div
                 key={q.id}
                 className={`${styles.qRow} ${question?.id === q.id ? styles.qRowActive : ''} ${previewId === q.id ? styles.qRowSelected : ''}`}

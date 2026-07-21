@@ -120,6 +120,25 @@
   color: #fff;
 }
 
+.searchRow {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 7px;
+  color: #fff;
+  font-size: .85rem;
+  box-sizing: border-box;
+  transition: border-color .12s;
+}
+.searchInput:focus { outline: none; border-color: #2563eb; }
+.searchInput::placeholder { color: rgba(255,255,255,.4); }
+
 .filterRow {
   display: flex;
   flex-direction: column;
