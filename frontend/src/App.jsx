@@ -159,7 +159,6 @@ export default function App() {
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <h1>Methodize Question Bank</h1>
-          <span className={styles.subtitle}>SAT · Hard</span>
         </div>
         {user && (
           <div className={styles.userRow}>
