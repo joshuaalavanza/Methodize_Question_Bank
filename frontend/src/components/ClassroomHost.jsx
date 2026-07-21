@@ -5,8 +5,10 @@ import styles from './ClassroomHost.module.css'
 
 const IMG_BASE  = `${API_BASE}/images`
 const IMG_VER   = '4'
-const LABELS  = ['A', 'B', 'C', 'D']
-const COLORS  = ['#e74c3c', '#2980b9', '#f39c12', '#27ae60']
+const LABELS        = ['A', 'B', 'C', 'D']
+const COLORS        = ['#e74c3c', '#2980b9', '#f39c12', '#27ae60']  // kept for legacy use
+const CORRECT_COLOR = '#27ae60'
+const WRONG_COLOR   = '#c0392b'
 
 const MATH_DOMAINS    = ['Algebra', 'Advanced Math', 'Problem-Solving and Data Analysis', 'Geometry and Trigonometry']
 const ENGLISH_DOMAINS = ['Craft and Structure', 'Standard English Conventions', 'Expression of Ideas', 'Information and Ideas']
@@ -369,7 +371,7 @@ export default function ClassroomHost({ onClose }) {
                     const choiceText = (question.choices[i] || '').replace(/^[A-D]\)\s*/, '')
                     return (
                       <div key={label} className={styles.barRow}>
-                        <span className={styles.barLabel} style={{ color: COLORS[i] }}>{label}</span>
+                        <span className={styles.barLabel}>{label}</span>
                         <div className={styles.barTrack}>
                           <span className={styles.barText}>{choiceText}</span>
                         </div>
@@ -392,7 +394,7 @@ export default function ClassroomHost({ onClose }) {
           {hostPhase === 'revealed' && question && (
             <div className={styles.liveBlock}>
               <p className={styles.revealLabel}>
-                Correct answer: <strong style={{ color: question.question_type === 'spr' ? '#27ae60' : COLORS[LABELS.indexOf(question.correct_answer)] }}>
+                Correct answer: <strong style={{ color: CORRECT_COLOR }}>
                   {question.correct_answer}
                 </strong>
               </p>
@@ -421,15 +423,16 @@ export default function ClassroomHost({ onClose }) {
                     const count      = breakdown?.[label] ?? 0
                     const pct        = Math.round(count / maxCount * 100)
                     const isCorrect  = label === question.correct_answer
+                    const color      = isCorrect ? CORRECT_COLOR : WRONG_COLOR
                     const choiceText = (question.choices[i] || '').replace(/^[A-D]\)\s*/, '')
                     return (
-                      <div key={label} className={`${styles.barRow} ${isCorrect ? styles.barCorrect : ''}`}>
-                        <span className={styles.barLabel} style={{ color: COLORS[i] }}>{label}</span>
+                      <div key={label} className={styles.barRow}>
+                        <span className={styles.barLabel} style={{ color }}>{label}</span>
                         <div className={styles.barTrack}>
-                          <div className={styles.barFill} style={{ width: `${pct}%`, background: COLORS[i] }} />
+                          <div className={styles.barFill} style={{ width: `${pct}%`, background: color }} />
                           <span className={styles.barText}>{choiceText}</span>
                         </div>
-                        <span className={styles.barCount}>{count}{isCorrect ? ' ✓' : ''}</span>
+                        <span className={styles.barCount} style={{ color }}>{count}{isCorrect ? ' ✓' : ''}</span>
                       </div>
                     )
                   })}

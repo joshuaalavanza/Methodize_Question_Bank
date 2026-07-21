@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import styles from './StudentJoin.module.css'
 import { WS_BASE } from '../api'
-const LABELS  = ['A', 'B', 'C', 'D']
-const COLORS  = ['#e74c3c', '#2980b9', '#f39c12', '#27ae60']
+const LABELS         = ['A', 'B', 'C', 'D']
+const COLORS         = ['#e74c3c', '#2980b9', '#f39c12', '#27ae60']  // kept for legacy
+const NEUTRAL        = '#1e3a5f'
+const CORRECT_COLOR  = '#27ae60'
+const WRONG_COLOR    = '#c0392b'
 
 const STORAGE_KEY = (sid) => `quarry_sid_${sid}`
 const MAX_RETRIES = 6
@@ -240,7 +243,7 @@ export default function StudentJoin({ sessionId }) {
               <button
                 key={i}
                 className={styles.choiceBtn}
-                style={{ background: COLORS[i] }}
+                style={{ background: NEUTRAL }}
                 onClick={() => sendAnswer(LABELS[i])}
               >
                 <span className={styles.choiceLetter}>{LABELS[i]}</span>
@@ -277,7 +280,7 @@ export default function StudentJoin({ sessionId }) {
                   key={i}
                   className={styles.choiceBtn}
                   style={{
-                    background: COLORS[i],
+                    background: NEUTRAL,
                     opacity: isChosen ? 1 : 0.35,
                     outline: isChosen ? '3px solid #fff' : 'none',
                     outlineOffset: '2px',
